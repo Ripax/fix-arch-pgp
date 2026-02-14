@@ -1,14 +1,14 @@
 pkgname=fix-arch-pgp
 pkgver=1.1.1
 pkgrel=1
-pkgdesc="Professional Arch Linux pacman PGP repair utility with auto-detection and logging"
+pkgdesc="Professional Arch Linux pacman PGP repair utility"
 arch=('any')
 url="https://github.com/Ripax/fix-arch-pgp"
 license=('MIT')
 depends=('pacman' 'gnupg')
 optdepends=('reflector: mirror optimization support')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/Ripax/fix-arch-pgp/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('REPLACE_WITH_REAL_HASH')
+source=("https://github.com/Ripax/fix-arch-pgp/archive/v$pkgver.tar.gz")
+sha256sums=('f5aef3cf5460b886b061e45ffefad40bc37f302ec9c3042a512536cade7ce0c2')
 
 package() {
     cd "$srcdir/$pkgname-$pkgver"
@@ -21,7 +21,4 @@ package() {
 
     install -Dm644 LICENSE \
         "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-
-    install -Dm644 README.md \
-        "$pkgdir/usr/share/doc/$pkgname/README.md"
 }
