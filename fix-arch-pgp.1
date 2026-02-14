@@ -1,0 +1,102 @@
+.TH FIX-ARCH-PGP 1 "2026-02-14" "v1.1.1" "Arch Linux Utilities"
+
+.SH NAME
+fix-arch-pgp \- professional Arch Linux pacman PGP repair utility
+
+.SH SYNOPSIS
+.B fix-arch-pgp
+.RI [ options ]
+
+.SH DESCRIPTION
+.B fix-arch-pgp
+is a professional command-line utility designed to detect and repair
+pacman PGP signature errors, corrupted package issues, and mirror inconsistencies
+on Arch Linux systems.
+
+It provides automatic keyring reset, optional mirror optimization,
+safe detection mode, logging, and dry-run capability.
+
+All operations are logged to:
+
+    /var/log/fix-arch-pgp.log
+
+.SH OPTIONS
+
+.TP
+.B --quick
+Run minimal ultra-fast repair mode.
+Skips key refresh step for faster execution.
+
+.TP
+.B --dry-run
+Show commands without executing them.
+Useful for auditing or automation preview.
+
+.TP
+.B --force
+Skip confirmation prompt before performing system modifications.
+
+.TP
+.B --auto-detect
+Check system for signature errors before performing repair.
+If no issue is detected, the tool exits safely without changes.
+
+.TP
+.B --version
+Display version information.
+
+.TP
+.B --info
+Display detailed project metadata including:
+version, creation date, author, license, install path, and log location.
+
+.SH LOGGING
+All executed commands and output are recorded in:
+
+    /var/log/fix-arch-pgp.log
+
+.SH DEPENDENCIES
+Requires:
+    pacman
+    gnupg
+
+Optional:
+    reflector (for mirror optimization)
+
+.SH EXAMPLES
+
+Full repair:
+
+    fix-arch-pgp
+
+Quick repair:
+
+    fix-arch-pgp --quick
+
+Auto detect and repair if needed:
+
+    fix-arch-pgp --auto-detect
+
+Dry run:
+
+    fix-arch-pgp --dry-run
+
+Force execution without prompt:
+
+    fix-arch-pgp --force
+
+.SH FILES
+/usr/bin/fix-arch-pgp
+/var/log/fix-arch-pgp.log
+
+.SH AUTHOR
+Your Name
+
+.SH LICENSE
+MIT License
+
+.SH PROJECT
+https://github.com/yourname/fix-arch-pgp
+
+.SH SEE ALSO
+pacman(8), pacman-key(8), reflector(1)
