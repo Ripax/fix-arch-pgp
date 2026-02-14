@@ -1,0 +1,149 @@
+#!/bin/bash
+# SPDX-License-Identifier: MIT
+#
+# ============================================================
+#  fix-arch-pgp
+#  Professional Arch Linux PGP Repair Utility
+#
+#  Version: 1.1.1
+#  Created: 2026-02-14
+#  Author: Anupam Biswas
+#  License: MIT
+#  Project: https://github.com/Ripax/fix-arch-pgp
+#
+#  Description:
+#  A robust CLI tool to detect and repair pacman PGP signature
+#  errors, corrupted package issues, and mirror inconsistencies.
+#
+#  This utility is designed for production environments and
+#  includes logging, auto-detection, dry-run mode, and
+#  optional mirror optimization.
+# ============================================================
+
+VERSION="1.1.1"
+CREATED="2025-09-24"
+UPDATED="2026-02-14"
+AUTHOR="Anupam Biswas"
+LICENSE="MIT"
+PROJECT_URL="https://github.com/Ripax/fix-arch-pgp"
+LOGFILE="/var/log/fix-arch-pgp.log"
+
+# ---- Colors ----
+RED="\e[31m"; GREEN="\e[32m"; YELLOW="\e[33m"
+BLUE="\e[34m"; CYAN="\e[36m"; RESET="\e[0m"
+
+log() { echo -e "$(date '+%F %T') - $1" >> "$LOGFILE"; }
+out() { echo -e "$1"; log "$1"; }
+
+# ---- Flags ----
+QUICK=false
+DRYRUN=false
+FORCE=false
+AUTODETECT=false
+
+# ---- Parse Args ----
+for arg in "$@"; do
+    case "$arg" in
+        --quick) QUICK=true ;;
+        --dry-run) DRYRUN=true ;;
+        --force) FORCE=true ;;
+        --auto-detect) AUTODETECT=true ;;
+        --version)
+            echo "fix-arch-pgp version $VERSION"
+            exit 0
+            ;;
+        --info)
+            echo -e "\n${CYAN}fix-arch-pgp — Arch Linux PGP Repair Utility${RESET}"
+            echo -e "${BLUE}Version:${RESET}        $VERSION"
+            echo -e "${BLUE}Created:${RESET}        $CREATED"
+            echo -e "${BLUE}Last Updated:${RESET}   $UPDATED"
+            echo -e "${BLUE}Author:${RESET}         $AUTHOR"
+            echo -e "${BLUE}License:${RESET}        $LICENSE"
+            echo -e "${BLUE}Project URL:${RESET}    $PROJECT_URL"
+            echo -e "${BLUE}Install Path:${RESET}   $(command -v fix-arch-pgp)"
+            echo -e "${BLUE}Log File:${RESET}       $LOGFILE"
+            echo -e "${BLUE}Description:${RESET}"
+            echo "  Professional Arch Linux utility to detect and repair"
+            echo "  pacman PGP signature errors, corrupted package issues,"
+            echo "  and mirror inconsistencies."
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo "Usage: fix-arch-pgp [--quick] [--dry-run] [--force] [--auto-detect] [--version] [--info]"
+            exit 1
+            ;;
+    esac
+done
+
+# ---- Auto Elevate ----
+if [[ $EUID -ne 0 ]]; then
+    exec sudo "$0" "$@"
+fi
+
+touch "$LOGFILE"
+
+run_cmd() {
+    if [[ "$DRYRUN" = true ]]; then
+        out "${YELLOW}[DRY-RUN] $1${RESET}"
+    else
+        out "${BLUE}→ $1${RESET}"
+        eval "$1" >> "$LOGFILE" 2>&1
+    fi
+}
+
+refresh_mirrors() {
+    if command -v reflector &>/dev/null; then
+        out "${CYAN}Refreshing mirrors with reflector...${RESET}"
+        run_cmd "reflector --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist"
+    else
+        out "${YELLOW}Reflector not installed. Skipping mirror refresh.${RESET}"
+    fi
+}
+
+auto_detect_issue() {
+    out "${CYAN}Checking pacman health...${RESET}"
+    if pacman -Sy &>/tmp/pacman_test.log; then
+        out "${GREEN}No signature issues detected.${RESET}"
+        return 1
+    fi
+
+    if grep -qi "signature" /tmp/pacman_test.log; then
+        out "${RED}Signature problem detected.${RESET}"
+        return 0
+    fi
+
+    out "${GREEN}No keyring reset required.${RESET}"
+    return 1
+}
+
+echo -e "\n${CYAN}==== fix-arch-pgp v$VERSION ====${RESET}\n"
+
+if [[ "$AUTODETECT" = true ]]; then
+    if auto_detect_issue; then
+        out "${YELLOW}Running repair due to detected issue...${RESET}"
+    else
+        exit 0
+    fi
+fi
+
+if [[ "$FORCE" = false && "$DRYRUN" = false ]]; then
+    read -p "Proceed with system repair? [y/N]: " confirm
+    [[ "$confirm" != "y" && "$confirm" != "Y" ]] && exit 0
+fi
+
+refresh_mirrors
+
+run_cmd "pacman -Sy --noconfirm archlinux-keyring"
+run_cmd "rm -rf /etc/pacman.d/gnupg"
+run_cmd "pacman-key --init"
+run_cmd "pacman-key --populate archlinux"
+
+if [[ "$QUICK" = false ]]; then
+    run_cmd "pacman-key --refresh-keys || true"
+fi
+
+run_cmd "pacman -Scc --noconfirm"
+run_cmd "pacman -Syu --noconfirm"
+
+out "${GREEN}Repair completed successfully.${RESET}"
